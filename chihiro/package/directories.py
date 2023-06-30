@@ -1,7 +1,7 @@
 import os
 
 
-base_dir = '.'
+base_dir = './chihiro'
 
 plot_dir = os.path.join(base_dir, 'plots')
 if not os.path.isdir(plot_dir):

@@ -2,13 +2,15 @@ import torch
 from torch.autograd import grad
 
 dtype = torch.float
-
+device_type = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 # Define some more general functions
 
 
 def dfx(x, f):
     # Calculate the derivative with auto-differention
     gopts = torch.ones(x.shape, dtype=dtype)
+    if device_type == 'cuda:0':
+        gopts = gopts.to(device = torch.device('cuda:0'))
     return grad([f], [x], grad_outputs=gopts, create_graph=True)[0]
 
 

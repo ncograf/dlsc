@@ -19,6 +19,8 @@ torch.backends.cudnn.benchmark = False
 np.random.seed(seed)
 random.seed(seed)
 
+device_type = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
 # for the plots
 plt.rc('xtick', labelsize=16)
 plt.rcParams.update({'font.size': 16})
@@ -51,6 +53,8 @@ def save_plot(item: list, xlabel: str, ylabel: str, path: str, title: str='', se
 def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, minibatch_number=1):
     par2 = 0
     fc0 = qNN1(neurons)
+    if device_type == 'cuda:0':
+        fc0 = fc0.cuda()
     fc1 = 0
     betas = [0.999, 0.9999]
     optimizer = optim.Adam(fc0.parameters(), lr=lr, betas=betas)
@@ -103,6 +107,8 @@ def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, 
         for nbatch in range(minibatch_number):
             # batch time set
             t_mb = t_b[batch_start:batch_end]
+            if device_type == 'cuda:0':
+                t_mb = t_mb.cuda()
 
             #  Network solutions
             nn, En = fc0(t_mb)
@@ -112,7 +118,9 @@ def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, 
             En_history.append(En[0].data.tolist()[0])
 
             psi = parametricSolutions(t_mb, fc0, t0, tf, x1)
-            Ltot, f_ret, H_psi = hamEqs_Loss(t_mb, psi, En)
+            if device_type == 'cuda:0':
+                psi = psi.cuda()
+            Ltot, f_ret, H_psi = hamEqs_Loss(t_mb, psi, En.cuda() if device_type == 'cuda:0' else En)
             # Ltot /= En.detach()[0].data.tolist()[0]**2
             SE_loss_history.append(Ltot)
             internal_SE_loss.append(Ltot.cpu().detach().numpy())

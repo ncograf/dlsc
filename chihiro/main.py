@@ -161,7 +161,7 @@ def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, 
                 fig.tight_layout()
                 fig.savefig(all_path)
 
-                plot_solutions(dic, t0, tf, nTest)
+                plot_solutions(dic, t0, tf, n_train)
 
             exp_thresh = -10
             if tt == first_epochs:
@@ -291,12 +291,4 @@ axs[1,1].set_title('rm')
 fig.tight_layout()
 fig.savefig(all_path)
 
-plot_solutions(loss_hists1[10], t0, tf, nTest)
-
-print('\n############ CHECK ORTH ###################')
-li = []
-for bin in loss_hists1[10].keys():
-    if bin and loss_hists1[10][bin][0]:
-        li.append([bin, parametricSolutions(tTest, loss_hists1[10][bin][0].cpu(), t0, tf, xBC1)])
-
-print('1x2 ', torch.dot(li[0][:,0],li[1][:,0]))
+plot_solutions(loss_hists1[10], t0, tf, n_train)

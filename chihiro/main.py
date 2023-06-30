@@ -214,21 +214,21 @@ def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, 
 
 
             if orth_counter == 1:
-                par2 = parametricSolutions(t_mb, dic[1][0], t0, tf, x1)
+                par2 = parametricSolutions(t_mb, dic[1][0].cuda() if device_type == 'cuda:0' else dic[1][0], t0, tf, x1)
                 ortho_loss = torch.sqrt(
                     torch.dot(par2[:, 0], psi[:, 0]).pow(2))/25
                 orth_losses.append(ortho_loss.cpu().detach().numpy())
                 Ltot += ortho_loss
             elif orth_counter == 2:
-                par2 = parametricSolutions(t_mb, dic[1][0], t0, tf, x1)
-                par3 = parametricSolutions(t_mb, dic[2][0], t0, tf, x1)
+                par2 = parametricSolutions(t_mb, dic[1][0].cuda() if device_type == 'cuda:0' else dic[1][0], t0, tf, x1)
+                par3 = parametricSolutions(t_mb, dic[2][0].cuda() if device_type == 'cuda:0' else dic[2][0], t0, tf, x1)
                 ortho_loss = torch.sqrt(torch.dot(par2[:,0]+par3[:,0], psi[:,0]).pow(2))/25
                 orth_losses.append(ortho_loss.cpu().detach().numpy())
                 Ltot += ortho_loss
             elif orth_counter == 3 or orth_counter == 4 or orth_counter == 5:
-                par2 = parametricSolutions(t_mb, dic[1][0], t0, tf, x1)
-                par3 = parametricSolutions(t_mb, dic[2][0], t0, tf, x1)
-                par4 = parametricSolutions(t_mb, dic[3][0], t0, tf, x1)
+                par2 = parametricSolutions(t_mb, dic[1][0].cuda() if device_type == 'cuda:0' else dic[1][0], t0, tf, x1)
+                par3 = parametricSolutions(t_mb, dic[2][0].cuda() if device_type == 'cuda:0' else dic[2][0], t0, tf, x1)
+                par4 = parametricSolutions(t_mb, dic[3][0].cuda() if device_type == 'cuda:0' else dic[3][0], t0, tf, x1)
                 ortho_loss = torch.sqrt(torch.dot(
                     par2[:, 0]+par3[:, 0]+par4[:, 0], psi[:, 0]).pow(2))/25  # get rid of sqrt
                 orth_losses.append(ortho_loss.cpu().detach().numpy())

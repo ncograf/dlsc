@@ -23,19 +23,6 @@ random.seed(seed)
 plt.rc('xtick', labelsize=16)
 plt.rcParams.update({'font.size': 16})
 
-def save_bin(dic: dict, t0: float, tf: float, nTest: int):
-    plt.close();plt.cla();
-    tTest = torch.linspace(t0,tf,nTest)
-    tTest = tTest.reshape(-1,1);
-    tTest.requires_grad=True
-    t_net = tTest.detach().numpy()
-    for bin in dic.keys():
-        if bin and dic[bin][0]:
-            plt.plot(t_net, parametricSolutions(tTest, dic[bin][0].cpu(), t0, tf, xBC1).detach().numpy(), label=f'$\lambda$={bin}')
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(solutions_path)
-
 def save_plot(item: list, xlabel: str, ylabel: str, path: str, title: str='', semilogy: int=False):
     plt.close() 
     if semilogy:
@@ -161,8 +148,6 @@ def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, 
                 fig.tight_layout()
                 fig.savefig(all_path)
 
-                save_bin(dic, t0, tf, n_train)
-
             exp_thresh = -10
             if tt == first_epochs:
                 fc0.apply(weights_init)
@@ -192,6 +177,12 @@ def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, 
                 print('rm', rm)
                 print('oc', orth_counter)
             elif rm < np.exp(exp_thresh) and rm > 0 and orth_counter == 4:
+                orth_counter += 1
+                print('Epoch', tt)
+                print('E', En_history[-1])
+                print('rm', rm)
+                print('oc', orth_counter)
+            elif rm < np.exp(exp_thresh) and rm > 0 and orth_counter == 5:
                 TePf = time.time()
                 runTime = TePf - TeP0
                 loss_histories = (Loss_history, boundary_loss_history, nontriv_loss_history, internal_SE_loss, Ennontriv_loss_history,
@@ -211,7 +202,7 @@ def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, 
                 ortho_loss = torch.sqrt(torch.dot(par2[:,0]+par3[:,0], psi[:,0]).pow(2))/25
                 orth_losses.append(ortho_loss.cpu().detach().numpy())
                 Ltot += ortho_loss
-            elif orth_counter == 3 or orth_counter == 4:
+            elif orth_counter == 3 or orth_counter == 4 or orth_counter == 5:
                 par2 = parametricSolutions(t_mb, dic[1][0], t0, tf, x1)
                 par3 = parametricSolutions(t_mb, dic[2][0], t0, tf, x1)
                 par4 = parametricSolutions(t_mb, dic[3][0], t0, tf, x1)
@@ -285,18 +276,23 @@ axs[1,1].set_title('rm')
 fig.tight_layout()
 fig.savefig(all_path)
 
-save_bin(loss_hists1[10], t0, tf, n_train)
-
-print('\n############## CHECK ORTH ###################')
+plt.close();plt.cla();
 nTest = n_train; tTest = torch.linspace(t0,tf,nTest)
 tTest = tTest.reshape(-1,1);
 tTest.requires_grad=True
 t_net = tTest.detach().numpy()
+dic = loss_hists1[10]
+for bin in loss_hists1[10].keys():
+    if bin and loss_hists1[10][bin][0]:
+        plt.plot(t_net, parametricSolutions(tTest, loss_hists1[10][bin][0].cpu(), t0, tf, xBC1).detach().numpy(), label=f'$\lambda$={bin}')
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+print('\n############ CHECK ORTH ###################')
 li = []
 for bin in loss_hists1[10].keys():
     if bin and loss_hists1[10][bin][0]:
         li.append([bin, parametricSolutions(tTest, loss_hists1[10][bin][0].cpu(), t0, tf, xBC1)])
 
-print('1x2 ', torch.dot(li[0][1][:,0],li[1][1][:,0]))
-print('1x3 ', torch.dot(li[0][1][:,0],li[2][1][:,0]))
-print('1x4 ', torch.dot(li[0][1][:,0],li[3][1][:,0]))
+print('1x2 ', torch.dot(li[0][:,0],li[1][:,0]))

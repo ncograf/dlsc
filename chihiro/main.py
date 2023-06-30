@@ -23,6 +23,19 @@ random.seed(seed)
 plt.rc('xtick', labelsize=16)
 plt.rcParams.update({'font.size': 16})
 
+def plot_solutions(dic: dict, t0: float, tf: float, nTest: int):
+    plt.close();plt.cla();
+    tTest = torch.linspace(t0,tf,nTest)
+    tTest = tTest.reshape(-1,1);
+    tTest.requires_grad=True
+    t_net = tTest.detach().numpy()
+    for bin in dic.keys():
+        if bin and dic[bin][0]:
+            plt.plot(t_net, parametricSolutions(tTest, dic[bin][0].cpu(), t0, tf, xBC1).detach().numpy(), label=f'$\lambda$={bin}')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(solutions_path)
+
 def save_plot(item: list, xlabel: str, ylabel: str, path: str, title: str='', semilogy: int=False):
     plt.close() 
     if semilogy:
@@ -147,6 +160,8 @@ def run_Scan_finitewell(t0, tf, x1, neurons, first_epochs, epochs, n_train, lr, 
 
                 fig.tight_layout()
                 fig.savefig(all_path)
+
+                plot_solutions(dic, t0, tf, nTest)
 
             exp_thresh = -10
             if tt == first_epochs:
@@ -276,18 +291,7 @@ axs[1,1].set_title('rm')
 fig.tight_layout()
 fig.savefig(all_path)
 
-plt.close();plt.cla();
-nTest = n_train; tTest = torch.linspace(t0,tf,nTest)
-tTest = tTest.reshape(-1,1);
-tTest.requires_grad=True
-t_net = tTest.detach().numpy()
-dic = loss_hists1[10]
-for bin in loss_hists1[10].keys():
-    if bin and loss_hists1[10][bin][0]:
-        plt.plot(t_net, parametricSolutions(tTest, loss_hists1[10][bin][0].cpu(), t0, tf, xBC1).detach().numpy(), label=f'$\lambda$={bin}')
-plt.legend()
-plt.tight_layout()
-plt.show()
+plot_solutions(loss_hists1[10], t0, tf, nTest)
 
 print('\n############ CHECK ORTH ###################')
 li = []

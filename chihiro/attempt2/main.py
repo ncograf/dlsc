@@ -76,6 +76,12 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
                         loss_orth = torch.sqrt(torch.dot(parametric_solutions(x_train, dic[0](x_train)[0], x0, xf, 0)[:,0], 
                                               pred_u[:,0]).pow(2))/25
                         loss_tot += loss_orth
+                    # elif orth_counter[0] == 2 and 1 in dic.keys():
+                    #     par1 = parametric_solutions(x_train, dic[0](x_train)[0], x0, xf, 0)
+                    #     par2 = parametric_solutions(x_train, dic[1](x_train)[0], x0, xf, 0)
+                    #     loss_orth = torch.sqrt(torch.dot(par1[:,0] + par2[:,0], 
+                    #                           pred_u[:,0]).pow(2))/25
+                    #     loss_tot += loss_orth
                 loss_tot.backward()
 
                 # orth_counter[0] += 1
@@ -84,6 +90,13 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
                 loss_history_norm.append(loss_norm.item())
                 loss_history.append(loss_tot.item())
                 history_lambda.append(lambda_n[0].item())
+
+                if not len(loss_history) % 300:
+                    print(f'################# Epoch {len(loss_history)} ################')
+                    print('PDE loss: ', loss_pde.item())
+                    print('Norm loss: ', loss_norm.item())
+                    print('Lambda: ', lambda_n[0].item())
+                    print('Orth counter: ', orth_counter[0])
 
                 import copy
                 if orth_counter[0] == 0:
@@ -95,6 +108,8 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
                 return loss_tot.item()
             
             optimizer.step(closure=closure)
+            # plt.plot(history_lambda)
+            # plt.show()
             orth_counter[0] += 1
 
     # plt.semilogy(loss_history_norm)
@@ -108,13 +123,17 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
     n1 = dic[0](x_samples)[0]
     pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
     print(torch.sum(pred_u **2), torch.dot(pred_u[:,0], pred_u[:,0]))
-    plt.scatter(x_samples.detach(), pred_u.detach())
+    plt.scatter(x_samples.detach(), pred_u.detach(), label='Pred u')
+    plt.scatter(x_samples.detach(), 0.04*torch.sin(x_samples).detach(), label='sin(x)')
+    plt.legend()
     plt.show()
 
     n1 = dic[1](x_samples)[0]
     pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
     print(torch.sum(pred_u **2), torch.dot(pred_u[:,0], pred_u[:,0]))
-    plt.scatter(x_samples.detach(), pred_u.detach())
+    plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u')
+    plt.scatter(x_samples.detach(), 0.04*torch.sin(-2*x_samples).detach(), label='sin(2x)')
+    plt.legend()
     plt.show()
 
 x0, xf = 0., np.pi

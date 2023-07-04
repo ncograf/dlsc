@@ -34,6 +34,11 @@ def plot_solutions(dic: dict, t0: float, tf: float, nTest: int):
     for bin in dic.keys():
         if bin and dic[bin][0]:
             plt.plot(t_net, parametricSolutions(tTest, dic[bin][0].cpu(), t0, tf, xBC1).detach().numpy(), label=f'$\lambda$={bin}')
+
+    plt.plot(t_net, 17*torch.sin(tTest).detach().numpy(), label='sin(x)')
+    plt.plot(t_net, 7*torch.sin(2*tTest).detach().numpy(), label='sin(2x)')
+    plt.plot(t_net, 6*torch.sin(-3*tTest).detach().numpy(), label='sin(3x)')
+    plt.plot(t_net, 5*torch.sin(4*tTest).detach().numpy(), label='sin(4x)')
     plt.legend()
     plt.tight_layout()
     plt.savefig(solutions_path)
@@ -47,6 +52,8 @@ def save_plot(item: list, xlabel: str, ylabel: str, path: str, title: str='', se
     plt.ylabel(ylabel);plt.xlabel(xlabel);
     if title:
         plt.title(title)
+
+    plt.grid(True)
     plt.tight_layout()
     plt.savefig(path)
 
@@ -274,7 +281,7 @@ t0 =0.
 tf = np.pi
 xBC1=0.
 
-n_train, neurons, first_epochs, epochs, lr,mb = 1600, 10, int(1.5e4), int(8e4), 1e-2, 1
+n_train, neurons, first_epochs, epochs, lr,mb = 2000, 20, int(1.5e4), int(9e4), 1e-2, 1
 model1,loss_hists1,runTime1, latest_model = run_Scan_finitewell(t0, tf, xBC1, neurons, first_epochs, epochs, n_train, lr, mb)
 
 # Plot lambdas

@@ -54,6 +54,21 @@ def save_plots(loss_history:list, pde_hist: list, norm_hist: list, orth_hist: li
     return
 
 
+def save_solution(dic: dict, x_samples: Tensor,  index: int):
+    print(f'############# Save Solution_{index} ################')
+    n1 = dic[index][0](x_samples)[0]
+    pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
+    print(f'Check Normalization: ', torch.sum(pred_u **2))
+
+    plt.close();plt.cla();
+    plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u', s=2)
+    if index == 3:
+        plt.scatter(x_samples.detach(), 0.04*torch.sin(-3*x_samples).detach(), label=f'$sin(-3x)$', s=2)
+    else:
+        plt.scatter(x_samples.detach(), 0.04*torch.sin(index*x_samples).detach(), label=f'$sin({index}x)$', s=2)
+    plt.legend()
+    plt.savefig(os.path.join(plot_dir, f'solution_{index}.png'))
+
 def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
     network = qNN1()
 
@@ -77,14 +92,13 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
     dic[1] = (None, 1e4)
     dic[2] = (None, 1e4)
     dic[3] = (None, 1e4)
-    dic[4] = (None, 1e4)
 
-    for epoch in range(4):
+    for epoch in range(3):
         optimizer = torch.optim.LBFGS(network.parameters(),
                                   lr=float(0.05) if orth_counter[0] == 0 else float(0.04),
                                   # max_iter=100,
-                                  max_iter=1950,
-                                  max_eval=1950,
+                                  max_iter=4500,
+                                  max_eval=4500,
                                   history_size=800,
                                   tolerance_change=1.0 * np.finfo(float).eps)
         
@@ -124,14 +138,12 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
                             par2 = parametric_solutions(x_train, dic[3][0](x_train)[0], x0, xf, 0)
                             par3 = parametric_solutions(x_train, dic[2][0](x_train)[0], x0, xf, 0)
                             loss_orth = torch.sqrt(torch.dot(par1[:,0] + par2[:,0] + par3[:,0], 
-                                                  pred_u[:,0]).pow(2))
+                                                  pred_u[:,0]).pow(2))/25
                             loss_tot += loss_orth
 
                         loss_history_orth.append(loss_orth.item())
                         
                     loss_tot.backward()
-
-                    # orth_counter[0] += 1
 
                     loss_history_pde.append(loss_pde.item())
                     loss_history_norm.append(loss_norm.item())
@@ -165,6 +177,10 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
                         save_plots(loss_history, loss_history_pde, loss_history_norm, loss_history_orth, history_lambda)
                         print(f'Orth {orth_counter[0]} complete. Total Loss: {loss_tot.item()}')
                         raise OptimizationComplete
+                    if orth_counter[0] == 2 and decreasing and loss_tot.item() < 2e-4:
+                        save_plots(loss_history, loss_history_pde, loss_history_norm, loss_history_orth, history_lambda)
+                        print(f'Orth {orth_counter[0]} complete. Total Loss: {loss_tot.item()}')
+                        raise OptimizationComplete
 
                     return loss_tot.item()
                 
@@ -174,48 +190,9 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
 
         orth_counter[0] += 1
 
-    # plt.semilogy(loss_history_norm)
-    # plt.semilogy(loss_history_pde[:50])
-    # plt.show()
-
-    # plt.plot(history_lambda)
-    # plt.show()
-    
-    n1 = dic[1][0](x_samples)[0]
-    pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
-    print(torch.sum(pred_u **2), torch.dot(pred_u[:,0], pred_u[:,0]))
-    plt.close();plt.cla();
-    plt.scatter(x_samples.detach(), pred_u.detach(), label='Pred u')
-    plt.scatter(x_samples.detach(), 0.04*torch.sin(x_samples).detach(), label='sin(x)')
-    plt.legend()
-    plt.savefig(os.path.join(plot_dir, 'solution1.png'))
-
-    n1 = dic[3][0](x_samples)[0]
-    pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
-    plt.close();plt.cla();
-    print(torch.sum(pred_u **2), torch.dot(pred_u[:,0], pred_u[:,0]))
-    plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u')
-    plt.scatter(x_samples.detach(), 0.04*torch.sin(-3*x_samples).detach(), label='sin(-3x)')
-    plt.legend()
-    plt.savefig(os.path.join(plot_dir, 'solution3.png'))
-
-    n1 = dic[2][0](x_samples)[0]
-    pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
-    plt.close();plt.cla();
-    print(torch.sum(pred_u **2), torch.dot(pred_u[:,0], pred_u[:,0]))
-    plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u')
-    plt.scatter(x_samples.detach(), 0.04*torch.sin(2*x_samples).detach(), label='sin(2x)')
-    plt.legend()
-    plt.savefig(os.path.join(plot_dir, 'solution2.png'))
-
-    n1 = dic[4][0](x_samples)[0]
-    pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
-    plt.close();plt.cla();
-    print(torch.sum(pred_u **2), torch.dot(pred_u[:,0], pred_u[:,0]))
-    plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u')
-    plt.scatter(x_samples.detach(), 0.04*torch.sin(4*x_samples).detach(), label='sin(4x)')
-    plt.legend()
-    plt.savefig(os.path.join(plot_dir, 'solution4.png'))
+    save_solution(dic, x_samples, 1)
+    save_solution(dic, x_samples, 2)
+    save_solution(dic, x_samples, 3)
 
 x0, xf = 0., np.pi
 epochs, n_samples = int(1), 1200

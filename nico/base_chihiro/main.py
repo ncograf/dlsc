@@ -98,8 +98,8 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
         if orth_counter[0] == 0:
             lr = float(0.05)
         elif epoch == 4:
-            lr = float(0.015)
-            w = 0.02
+            lr = float(0.03)
+            w = 0.01
         elif orth_counter[0] == 3:
             lr = float(0.1)
             w = 1
@@ -139,7 +139,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
                     if orth_counter[0]:
                         if orth_counter[0] == 1:
                             par1 = parametric_solutions(x_train, dic[1][0](x_train)[0], x0, xf, 0)[:, 0]
-                            loss_orth = torch.sqrt(torch.dot(par1, pred_u[:,0].pow(2)))/25
+                            loss_orth = torch.sqrt(torch.dot(par1, pred_u[:,0]).pow(2))/25
                             loss_tot += loss_orth
                         elif orth_counter[0] == 2:
                             par1 = parametric_solutions(x_train, dic[1][0](x_train)[0], x0, xf, 0)
@@ -176,6 +176,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
                         save_plots(loss_history, loss_history_pde, loss_history_norm, loss_history_orth, history_lambda)
 
                     bin = round(lambda_n[0].data.tolist()[0])
+                    print(orth_counter[0], bin, round(lambda_n[0].item(), 4), round(loss_pde.item(),6))
                     #print(orth_counter[0], bin, lambda_n[0], loss_tot.item(), loss_pde.item(), loss_norm.item(), loss_orth.item())
                     if bin in [1,2,3,4] and loss_pde < dic[bin][1]:
                         dic[bin] = (copy.deepcopy(network), loss_pde)
@@ -191,7 +192,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int):
                         save_plots(loss_history, loss_history_pde, loss_history_norm, loss_history_orth, history_lambda)
                         print(f'Orth {orth_counter[0]} complete. Total Loss: {loss_tot.item()}')
                         raise OptimizationComplete
-                    if orth_counter[0] == 2 and decreasing and loss_tot.item() < 2e-4:
+                    if orth_counter[0] == 2 and decreasing and loss_tot.item() < 2.3e-4:
                         save_plots(loss_history, loss_history_pde, loss_history_norm, loss_history_orth, history_lambda)
                         print(f'Orth {orth_counter[0]} complete. Total Loss: {loss_tot.item()}')
                         raise OptimizationComplete

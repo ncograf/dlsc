@@ -130,6 +130,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
 
     for epoch in range(epoch_beg, 2):
         w = 1/25
+        w_pde = 1
         if orth_counter[0] == 0:
             lr = float(0.05)
         elif orth_counter[0] == 3:
@@ -138,6 +139,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
         else:
             lr = float(0.04)
             w = 0.6
+            w_pde = 2
 
         optimizer = torch.optim.LBFGS(network.parameters(),
                                       lr=lr,
@@ -156,7 +158,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                     n1, lambda_n = network(x_train)
                     pred_u = parametric_solutions(x_train, n1, x0, xf, 0)
 
-                    loss_pde = pde_loss(x_train, pred_u, lambda_n)*2
+                    loss_pde = pde_loss(x_train, pred_u, lambda_n) * w_pde
 
                     # Impose squared integral = 1
                     # loss_norm = (torch.sum(pred_u**2) - 1)**2 / 25

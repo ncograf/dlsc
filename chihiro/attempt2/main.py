@@ -180,7 +180,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                             par1 = parametric_solutions(
                                 x_train, dic[1][0](x_train)[0], x0, xf, 0)
                             par2 = parametric_solutions(
-                                x_train, dic[3][0](x_train)[0], x0, xf, 0)
+                                x_train, dic[2][0](x_train)[0], x0, xf, 0)
                             loss_orth = torch.sqrt(torch.dot(par1[:, 0] + par2[:, 0],
                                                              pred_u[:, 0]).pow(2)) * w
                             loss_tot += loss_orth

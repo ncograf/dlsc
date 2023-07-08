@@ -127,7 +127,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
         dic[3] = (net3, 1e-20)
         epoch_beg = 3
         orth_counter[0] = 3
-
+    
     for epoch in range(epoch_beg, 3):
         w_pde = [1]
         w_norm = [1]
@@ -140,7 +140,10 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
             w_orth = [0.2]
             w_pde = [15]
         elif orth_counter[0] == 2:
-            lr = float(0.05)
+            lr = float(0.04)
+            w_orth = [0.6]
+            w_norm = [0]
+            w_pde = [1]
         elif orth_counter[0] == 3:
             lr = float(0.05)
             w_orth = [1]
@@ -164,13 +167,11 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
 
                     loss_pde = pde_loss(x_train, pred_u, lambda_n) * w_pde[0]
 
-                    # Impose squared integral = 1
-                    # loss_norm = (torch.sum(pred_u**2) - 1)**2 / 25
                     loss_norm = (torch.sqrt(
                         torch.dot(pred_u[:, 0], pred_u[:, 0])) - n_samples/xf).pow(2) * w_norm[0]
+                    
                     if orth_counter[0] == 1 and loss_norm < 0.01:
                         w_norm[0] = 0.1
-                    # loss_norm = torch.Tensor([0])
 
                     loss_tot = loss_pde + loss_norm
 

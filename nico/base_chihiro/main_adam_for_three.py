@@ -65,17 +65,13 @@ def save_solution(dic: dict, x_samples: Tensor,  index: int):
     c_2 = n_samples / xf / \
         torch.sqrt(torch.dot(torch.sin(x_samples)[
                    :, 0], torch.sin(x_samples)[:, 0]))
-        
-    sign = -1
-    if index in [2]:
-        sign = 1
 
     plt.close()
     plt.cla()
     plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u', s=2)
 
     plt.scatter(x_samples.detach(), c_2 *
-                    torch.sin(sign* index*x_samples).detach(), label=f'$sin(-{"" if index==1 else index}x)$', s=2)
+                    torch.sin(-index*x_samples).detach(), label=f'$sin(-{"" if index==1 else index}x)$', s=2)
     plt.legend()
     plt.savefig(os.path.join(plot_dir, f'solution_{index}.png'))
 
@@ -111,16 +107,12 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
         net1 = qNN1(100)
         net1.load_state_dict(torch.load(model1_path))
         dic[1] = (net1, 0)
-        save_solution(dic, torch.linspace(x0,xf,1200).reshape(-1,1), 1)
-        #network = net1
         epoch_beg = 1
         orth_counter[0] = 1
         if load2:
             net2 = qNN1(100)
             net2.load_state_dict(torch.load(model2_path))
             dic[2] = (net2, 0)
-            save_solution(dic, torch.linspace(x0,xf,1200).reshape(-1,1), 2)
-            #network = net2
             epoch_beg = 2
             orth_counter[0] = 2
             if load3:
@@ -131,36 +123,19 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                 epoch_beg = 3
                 orth_counter[0] = 3
     
-    for epoch in range(epoch_beg, 4):
+    optimizer = torch.optim.Adam(network.parameters(),lr = 0.2, betas=[0.999,0.9999])
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.96)
+    lowest_learing_lr = 0.009
+    network.apply(weights_init)
+    for epoch in range(50000):
         w_pde = [1]
-        w_norm = [1]
-        w_orth = [1/25]
-
-        if orth_counter[0] == 0:
-            lr = float(0.06)
-        elif orth_counter[0] == 1:
-            lr = float(0.06)
-            w_orth = [0.2]
-            w_pde = [15]
-        elif orth_counter[0] == 2:
-            lr = float(0.075)
-            w_orth = [0.2]
-            w_norm = [1.0]
-            w_pde = [1]
-        elif orth_counter[0] == 3:
-            lr = float(0.05)
-            w_orth = [0.2]
-            w_pde = [15]
-
-        optimizer = torch.optim.LBFGS(network.parameters(),
-                                      lr=lr,
-                                      max_iter=5000,
-                                      max_eval=5000,
-                                      history_size=800,
-                                      tolerance_change=1.0 * np.finfo(float).eps)
+        w_norm = [0.5]
+        w_orth = [0.2]
 
         try:
             for j, (x_train,) in enumerate(training_set):
+                if j > 0:
+                    break
                 def closure() -> float:
                     optimizer.zero_grad()
 
@@ -176,7 +151,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                     
                     if orth_counter[0] == 1 and loss_norm < 0.01:
                         w_norm[0] = 0.8
-                    
+
                     loss_tot = loss_pde + loss_norm
 
                     loss_orth = Tensor([0])
@@ -200,10 +175,11 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                         elif orth_counter[0] == 3:
                             par1 = parametric_solutions(
                                 x_train, dic[1][0](x_train)[0], x0, xf, 0)
-                            if not len(loss_history) % 500:
-                                plt.close();plt.cla()
-                                plt.scatter(x_train.view(-1).detach().numpy(), par1.detach().numpy())
-                                plt.show()
+                            if not len(loss_history) % 100:
+                                pass
+                                #plt.close();plt.cla()
+                                #plt.scatter(x_train.view(-1).detach().numpy(), pred_u.flatten().detach().numpy())
+                                #plt.show()
                             par2 = parametric_solutions(
                                 x_train, dic[3][0](x_train)[0], x0, xf, 0)
                             par3 = parametric_solutions(
@@ -237,7 +213,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                                    loss_history_norm, loss_history_orth, history_lambda)
 
                     print(len(loss_history), orth_counter[0], round(lambda_n[0].item(), 4),
-                          round(loss_pde.item(), 6), round(loss_norm.item(), 6), round(loss_orth.item(), 6))
+                          round(loss_pde.item(), 6), round(loss_norm.item(), 6), round(loss_orth.item(), 6), optimizer.param_groups[0]['lr'])
                     
                     bin = round(lambda_n[0].data.tolist()[0])
                     if bin in [1, 2, 3, 4] and loss_pde < dic[bin][1]:
@@ -258,7 +234,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                         print(
                             f'Orth {orth_counter[0]} complete. Total Loss: {loss_tot.item()}')
                         raise OptimizationComplete
-                    if orth_counter[0] == 1 and decreasing and loss_tot.item() < 0.8:
+                    if orth_counter[0] == 1 and decreasing and loss_tot.item() < 9:
                         torch.save(network.state_dict(), model2_path)
                         save_plots(loss_history, loss_history_pde,
                                    loss_history_norm, loss_history_orth, history_lambda)
@@ -276,10 +252,12 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                     return loss_tot.item()
 
                 optimizer.step(closure=closure)
+                if optimizer.param_groups[0]['lr'] > lowest_learing_lr:
+                    scheduler.step()
         except OptimizationComplete:
             pass
 
-        orth_counter[0] += 1
+        #orth_counter[0] += 1
 
     save_solution(dic, x_samples, 1)
     save_solution(dic, x_samples, 2)
@@ -289,4 +267,4 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
 x0, xf = 0., np.pi
 epochs, n_samples = int(1), 1200
 batch_size = n_samples
-train(x0, xf, epochs, n_samples, batch_size, load1=True, load2=True, load3=False)
+train(x0, xf, epochs, n_samples, batch_size, load1=True, load2=True, load3=True)

@@ -258,7 +258,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                         print(
                             f'Orth {orth_counter[0]} complete. Total Loss: {loss_tot.item()}')
                         raise OptimizationComplete
-                    if orth_counter[0] == 1 and decreasing and loss_tot.item() < 0.05:
+                    if orth_counter[0] == 1 and decreasing and loss_tot.item() < 0.055:
                         torch.save(network.state_dict(), model2_path)
                         save_plots(loss_history, loss_history_pde,
                                    loss_history_norm, loss_history_orth, history_lambda)

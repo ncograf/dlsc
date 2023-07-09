@@ -289,4 +289,4 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
 x0, xf = 0., np.pi
 epochs, n_samples = int(1), 1200
 batch_size = n_samples
-train(x0, xf, epochs, n_samples, batch_size, load1=True)
+train(x0, xf, epochs, n_samples, batch_size, load1=False)

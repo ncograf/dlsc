@@ -109,18 +109,18 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
         dic[1] = (net1, 0)
         epoch_beg = 1
         orth_counter[0] = 1
-    if load2:
-        net2 = qNN1(100)
-        net2.load_state_dict(torch.load(model2_path))
-        dic[2] = (net2, 0)
-        epoch_beg = 2
-        orth_counter[0] = 2
-    if load3:
-        net3 = qNN1(100)
-        net3.load_state_dict(torch.load(model3_path))
-        dic[3] = (net3, 0)
-        epoch_beg = 3
-        orth_counter[0] = 3
+        if load2:
+            net2 = qNN1(100)
+            net2.load_state_dict(torch.load(model2_path))
+            dic[2] = (net2, 0)
+            epoch_beg = 2
+            orth_counter[0] = 2
+            if load3:
+                net3 = qNN1(100)
+                net3.load_state_dict(torch.load(model3_path))
+                dic[3] = (net3, 0)
+                epoch_beg = 3
+                orth_counter[0] = 3
     
     for epoch in range(epoch_beg, 4):
         w_pde = [1]

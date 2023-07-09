@@ -69,15 +69,9 @@ def save_solution(dic: dict, x_samples: Tensor,  index: int):
     plt.close()
     plt.cla()
     plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u', s=2)
-    if index == 3:
-        plt.scatter(x_samples.detach(), c_2*torch.sin(-3 *
-                    x_samples).detach(), label=f'$sin(-3x)$', s=2)
-    if index in [1,2]:
-        plt.scatter(x_samples.detach(), c_2 *
-                    torch.sin(-index*x_samples).detach(), label=f'$sin(-{2 if index==2 else ""}x)$', s=2)
-    else:
-        plt.scatter(x_samples.detach(), c_2*torch.sin(index *
-                    x_samples).detach(), label=f'$sin({index}x)$', s=2)
+
+    plt.scatter(x_samples.detach(), c_2 *
+                    torch.sin(-index*x_samples).detach(), label=f'$sin(-{"" if index==1 else index}x)$', s=2)
     plt.legend()
     plt.savefig(os.path.join(plot_dir, f'solution_{index}.png'))
 
@@ -112,23 +106,23 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
     if load1:
         net1 = qNN1(100)
         net1.load_state_dict(torch.load(model1_path))
-        dic[1] = (net1, 1e-20)
+        dic[1] = (net1, 0)
         epoch_beg = 1
         orth_counter[0] = 1
     if load2:
         net2 = qNN1(100)
         net2.load_state_dict(torch.load(model2_path))
-        dic[2] = (net2, 1e-20)
+        dic[2] = (net2, 0)
         epoch_beg = 2
         orth_counter[0] = 2
     if load3:
         net3 = qNN1(100)
         net3.load_state_dict(torch.load(model3_path))
-        dic[3] = (net3, 1e-20)
+        dic[3] = (net3, 0)
         epoch_beg = 3
         orth_counter[0] = 3
     
-    for epoch in range(epoch_beg, 3):
+    for epoch in range(epoch_beg, 4):
         w_pde = [1]
         w_norm = [1]
         w_orth = [1/25]
@@ -141,12 +135,13 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
             w_pde = [15]
         elif orth_counter[0] == 2:
             lr = float(0.04)
-            w_orth = [0.6]
-            w_norm = [0]
+            w_orth = [0.1]
+            w_norm = [1]
             w_pde = [1]
         elif orth_counter[0] == 3:
             lr = float(0.05)
-            w_orth = [1]
+            w_orth = [0.2]
+            w_pde = [15]
 
         optimizer = torch.optim.LBFGS(network.parameters(),
                                       lr=lr,
@@ -171,7 +166,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                         torch.dot(pred_u[:, 0], pred_u[:, 0])) - n_samples/xf).pow(2) * w_norm[0]
                     
                     if orth_counter[0] == 1 and loss_norm < 0.01:
-                        w_norm[0] = 0.1
+                        w_norm[0] = 0.8
 
                     loss_tot = loss_pde + loss_norm
 
@@ -196,12 +191,18 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                         elif orth_counter[0] == 3:
                             par1 = parametric_solutions(
                                 x_train, dic[1][0](x_train)[0], x0, xf, 0)
+                            if not len(loss_history) % 500:
+                                plt.close();plt.cla()
+                                plt.scatter(x_train.view(-1).detach().numpy(), par1.detach().numpy())
+                                plt.show()
                             par2 = parametric_solutions(
                                 x_train, dic[3][0](x_train)[0], x0, xf, 0)
                             par3 = parametric_solutions(
                                 x_train, dic[2][0](x_train)[0], x0, xf, 0)
                             loss_orth = torch.sqrt(torch.dot(par1[:, 0] + par2[:, 0] + par3[:, 0],
                                                              pred_u[:, 0]).pow(2)) * w_orth[0]
+                            if loss_orth < 0.01:
+                                w_orth[0] = 0.1
                             loss_tot += loss_orth
 
                         loss_history_orth.append(loss_orth.item())
@@ -237,6 +238,9 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                     if len(loss_history) > 3:
                         decreasing = (
                             loss_history[-3] > loss_history[-2]) and (loss_history[-2] > loss_history[-1])
+                        
+                    if loss_pde.item() < 1000 and len(loss_history) > 40:
+                        w_pde[0] = 1
 
                     if orth_counter[0] == 0 and loss_tot.item() < 0.009:
                         torch.save(network.state_dict(), model1_path)
@@ -252,7 +256,7 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
                         print(
                             f'Orth {orth_counter[0]} complete. Total Loss: {loss_tot.item()}')
                         raise OptimizationComplete
-                    if orth_counter[0] == 2 and decreasing and loss_tot.item() < 1.99e-4:
+                    if orth_counter[0] == 2 and decreasing and loss_tot.item() < 2.6:
                         torch.save(network.state_dict(), model3_path)
                         save_plots(loss_history, loss_history_pde,
                                    loss_history_norm, loss_history_orth, history_lambda)
@@ -276,4 +280,4 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
 x0, xf = 0., np.pi
 epochs, n_samples = int(1), 1200
 batch_size = n_samples
-train(x0, xf, epochs, n_samples, batch_size, load1=True, load2=True)
+train(x0, xf, epochs, n_samples, batch_size, load1=True, load2=True, load3=True)

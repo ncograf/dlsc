@@ -72,7 +72,7 @@ def save_solution(dic: dict, x_samples: Tensor,  index: int):
 
     if index == 1:
         plt.scatter(x_samples.detach(), c_2 *
-                        torch.sin(index*x_samples).detach(), label=f'$sin({"" if index==1 else index}x)$', s=2)
+                        torch.sin(-index*x_samples).detach(), label=f'$-sin({"" if index==1 else index}x)$', s=2)
     else:
         plt.scatter(x_samples.detach(), c_2 *
                         torch.sin(index*x_samples).detach(), label=f'$sin({"" if index==1 else index}x)$', s=2)
@@ -289,4 +289,4 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
 x0, xf = 0., np.pi
 epochs, n_samples = int(1), 1200
 batch_size = n_samples
-train(x0, xf, epochs, n_samples, batch_size, load1=False)
+train(x0, xf, epochs, n_samples, batch_size,)

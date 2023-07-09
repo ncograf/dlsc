@@ -70,8 +70,12 @@ def save_solution(dic: dict, x_samples: Tensor,  index: int):
     plt.cla()
     plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u', s=2)
 
-    plt.scatter(x_samples.detach(), c_2 *
-                    torch.sin(-index*x_samples).detach(), label=f'$sin(-{"" if index==1 else index}x)$', s=2)
+    if index == 2:
+        plt.scatter(x_samples.detach(), c_2 *
+                        torch.sin(-index*x_samples).detach(), label=f'$sin(-{"" if index==1 else index}x)$', s=2)
+    else:
+        plt.scatter(x_samples.detach(), c_2 *
+                        torch.sin(index*x_samples).detach(), label=f'$sin({"" if index==1 else index}x)$', s=2)
     plt.legend()
     plt.savefig(os.path.join(plot_dir, f'solution_{index}.png'))
 

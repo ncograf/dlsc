@@ -101,36 +101,16 @@ class Pinns:
     ################################################################################################
     ################################################################################################
 
-    def network_initialization(self, int):
-        if int == 0:
+    def weight_initialization(self, cnt):
+        lr = float(0.1)
+        w_orth = [0.01]
+        w_pde = [1]
+        w_norm = [1]
+        if cnt == 0:
             lr = float(0.2)
-            w_pde = [1]
-            w_norm = [1]
-            w_orth = [0]
-            self.network.init_weights()
-
-        elif int == 1:
-            lr = float(0.2)
-            w_pde = [1]
-            w_norm = [1]
-            w_orth = [0.01]
-            self.network.init_weights()
-
-        elif int == 2:
-            lr = float(0.3)
-            w_pde = [1]
-            w_norm = [1]
-            w_orth = [0.01]
-            self.network.init_weights()
-            self.network.sym = -1
-
-        elif int == 3:
-            lr = float(0.3)
-            w_pde = [1]
-            w_norm = [1]
+        elif cnt == 3:
+            lr = float(0.15)
             w_orth = [0.02]
-            self.network.init_weights()
-            self.network.sym = -1
 
         return lr, w_pde, w_norm, w_orth
 
@@ -140,11 +120,15 @@ class Pinns:
     def fit(self):
 
 
-        for _ in range(self.epoch_beg, 4):
+        for _ in range(100):
+            
+            # after finding 4 soluitons stop
+            if self.orth_counter[0] >= 4:
+                break
 
             local_loss_history = list()
 
-            lr, w_pde, w_norm, w_orth = self.network_initialization(self.orth_counter[0])
+            lr, w_pde, w_norm, w_orth = self.weight_initialization(self.orth_counter[0])
 
             optimizer = torch.optim.LBFGS(self.network.parameters(),
                                         lr=lr,
@@ -180,18 +164,8 @@ class Pinns:
                         loss_log = loss_tot.log()
                         loss_log.backward()
 
-                        window = 1000
-                        if len(local_loss_history) >= window+1:
-                            rm = np.mean(np.array(local_loss_history[-window:])-np.array(local_loss_history[-window-1:-1]))
-                        else:
-                            rm = np.mean(np.array(local_loss_history[1:])-np.array(local_loss_history[:-1]))
-                        
-                        decreasing = False
-                        if len(local_loss_history) > 3:
-                            decreasing = (
-                                local_loss_history[-3] > local_loss_history[-2]) and (local_loss_history[-2] > local_loss_history[-1])
                       
-                        check = self.save_or_switch(loss_tot, decreasing, rm)
+                        save_or_switch, rm = self.save_or_switch(loss_tot, local_loss_history, lambda_n[0].item())
 
                         if not len(self.loss_history) % 300:
                             print(
@@ -212,9 +186,10 @@ class Pinns:
                               " | loss pde: ", round(loss_pde.item(), 6),
                               " | loss norm: ", round(loss_norm.item(), 6),
                               " | loss orth: ", round(loss_orth.item(), 6),
-                              " | rm: ", round(rm, 6))
+                              " | rm: ", round(rm, 6),
+                              " | sym: ", self.network.sym)
 
-                        if check == 0: 
+                        if save_or_switch: 
                             raise _common.OptimizationComplete
 
                         return loss_tot.item()
@@ -222,11 +197,6 @@ class Pinns:
                     optimizer.step(closure=closure)
             except _common.OptimizationComplete:
                 pass
-            
-            print("\n Changing Orth Counter \n")
-            torch.save(self.dic[self.orth_counter[0]][0].state_dict(), model_path[self.orth_counter[0]])
-            self.save_solution(self.dic, torch.linspace(self.x0,self.xf, 3000).reshape(-1,1), self.orth_counter[0])
-            self.orth_counter[0] += 1
         
         self.plot_all()
 
@@ -240,6 +210,6 @@ n_samples = 2000
 batch_size = n_samples
 neurons = 50
 
-pinn = Pinns(neurons, n_samples, batch_size, x0, xf, load1 = True, load2 = True, load3 = True, load4 = True)
+pinn = Pinns(neurons, n_samples, batch_size, x0, xf, load1 = False, load2 = False, load3 = False, load4 = False)
 
 pinn.fit()

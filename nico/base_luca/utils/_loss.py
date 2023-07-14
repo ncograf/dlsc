@@ -15,7 +15,7 @@ def dfx(self, x, f):
 
 def potential(self, t):
     Xsnp = t.data.numpy()
-    Vnp = (np.heaviside(-Xsnp-np.pi/2, 0) + np.heaviside(Xsnp-np.pi/2, 0))*20
+    Vnp = (np.heaviside(-Xsnp-1.7, 0) + np.heaviside(Xsnp-1.7, 0))*20
     Vtorch = torch.from_numpy(Vnp)
     return Vtorch
 

@@ -33,3 +33,4 @@ def load_states(self, load1, load2, load3, load4):
                     self.dic[3] = (copy.deepcopy(self.network), 0)
                     self.epoch_beg = 4
                     self.orth_counter[0] = 4
+    self.network.init_weights()

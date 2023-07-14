@@ -36,14 +36,14 @@ def save_plots(self, loss_history: list, pde_hist: list, norm_hist: list, orth_h
 
 def save_solution(self, dic: dict, x_samples: torch.Tensor,  index: int):
     print(f'############# Save Solution_{index} ################')
-    n1 = dic[index][0](x_samples)[0]
+    n1, lambda_ = dic[index][0](x_samples)
     pred_u = self.parametric_solutions(x_samples, n1, self.x0, self.xf, 0)
     print(f'Check Normalization: ', torch.sum(pred_u ** 2))
 
     plt.close()
     plt.cla()
     plt.clf()
-    plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u', s=2)
+    plt.scatter(x_samples.detach(), pred_u.detach(), label=f'E = {np.round(lambda_[0].item(),4)} ', s=2)
     plt.legend()
     plt.savefig(os.path.join(plot_dir, f'solution_{index}.png'))
     

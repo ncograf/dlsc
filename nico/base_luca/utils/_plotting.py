@@ -1,12 +1,13 @@
-
 import matplotlib.pyplot as plt
 import torch
+import numpy as np
 import os
 from utils._paths import *
 
 def save_plots(self, loss_history: list, pde_hist: list, norm_hist: list, orth_hist: list, lambda_hist: list):
     plt.close()
     plt.cla()
+    plt.clf()
     fig, axs = plt.subplots(2, 3, figsize=(15, 10))
 
     axs[0, 0].semilogy(loss_history)
@@ -41,6 +42,25 @@ def save_solution(self, dic: dict, x_samples: torch.Tensor,  index: int):
 
     plt.close()
     plt.cla()
+    plt.clf()
     plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u', s=2)
     plt.legend()
     plt.savefig(os.path.join(plot_dir, f'solution_{index}.png'))
+    
+    
+def plot_all(self):
+    print(f'######### plot all solutions #############')
+    plt.close()
+    plt.cla()
+    fig, axs = plt.subplots(1, 4, figsize=(30, 10))
+    t = torch.linspace(self.x0, self.xf, 3000).reshape(-1,1)
+    self.load_states(True, True, True, True)
+    for i in range(4):
+        n1, lambda_ = self.dic[i][0](t)
+        f = self.parametric_solutions(t, n1, self.x0, self.xf, 0)
+        axs[i].plot(t.flatten().detach(), f.flatten().detach())
+        E = np.round(lambda_[0].item(),3)
+        axs[i].set_title(f'Single Well with E = {E}')
+        
+    fig.savefig(all_solutions_path)
+    

@@ -60,7 +60,8 @@ def save_solution(dic: dict, x_samples: Tensor,  index: int):
     print(f'############# Save Solution_{index} ################')
     n1 = dic[index][0](x_samples)[0]
     pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
-    print(f'Check Normalization: ', torch.sum(pred_u ** 2))
+    print(f'* Normalization:\n ', 'Prediction: ', torch.sqrt(torch.sum(pred_u ** 2)).item(),
+            '. True solution:', n_samples/xf)
 
     c_2 = n_samples / xf / \
         torch.sqrt(torch.dot(torch.sin(x_samples)[
@@ -71,17 +72,19 @@ def save_solution(dic: dict, x_samples: Tensor,  index: int):
     plt.scatter(x_samples.detach(), pred_u.detach(), label='pred u', s=2)
 
     if index in [1,3]:
-        plt.scatter(x_samples.detach(), c_2 *
-                        torch.sin(-index*x_samples).detach(), label=f'$-sin({"" if index==1 else index}x)$', s=2)
+        sol = c_2 * torch.sin(-index*x_samples).detach()
+        plt.scatter(x_samples.detach(), sol, label=f'$-sin({"" if index==1 else index}x)$', s=2)
     else:
-        plt.scatter(x_samples.detach(), c_2 *
-                        torch.sin(index*x_samples).detach(), label=f'$sin({"" if index==1 else index}x)$', s=2)
+        sol = c_2 * torch.sin(index*x_samples).detach()
+        plt.scatter(x_samples.detach(), sol, label=f'$sin({"" if index==1 else index}x)$', s=2)
+
+    print('Error: ', torch.mean(abs(sol - pred_u)**2))
     plt.legend()
     plt.savefig(os.path.join(plot_dir, f'solution_{index}.png'))
 
 
-def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
-          load1: bool = False, load2: bool = False, load4: bool = False):
+def train(x0: Tensor, xf: Tensor, n_samples: int, batch_size: int,
+          load1: bool = False, load2: bool = False, load4: bool = False, load3: bool=False):
     network = qNN1(100)
 
     soboleng = torch.quasirandom.SobolEngine(dimension=1)
@@ -107,26 +110,37 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
     dic[4] = (None, 1e4)
 
     epoch_beg = 0
+    epochs = 1
     if load1:
         network = qNN1(100)
         network.load_state_dict(torch.load(model1_path))
         dic[1] = (copy.deepcopy(network), 0)
         epoch_beg = 1
         orth_counter[0] = 1
+        epochs = 2
         if load2:
             network = qNN1(100)
             network.load_state_dict(torch.load(model2_path))
             dic[2] = (copy.deepcopy(network), 0)
             epoch_beg = 2
             orth_counter[0] = 2
+            epochs = 3
             if load4:
                 network = qNN1(100)
                 network.load_state_dict(torch.load(model4_path))
                 dic[4] = (copy.deepcopy(network), 0)
                 epoch_beg = 3
                 orth_counter[0] = 3
+                epochs = 4
+                if load3:
+                    network = qNN1(100)
+                    network.load_state_dict(torch.load(model3_path))
+                    dic[3] = (copy.deepcopy(network), 0)
+                    epoch_beg = 4
+                    orth_counter[0] = 4
+                    epochs = 4
     # network.sym = True
-    for epoch in range(epoch_beg, 4):
+    for epoch in range(epoch_beg, epochs):
         w_pde = [1]
         w_norm = [1]
         w_orth = [1/25]
@@ -284,14 +298,17 @@ def train(x0: Tensor, xf: Tensor, epochs: int, n_samples: int, batch_size: int,
             pass
 
         orth_counter[0] += 1
-
+    
     save_solution(dic, x_samples, 1)
-    save_solution(dic, x_samples, 2)
-    save_solution(dic, x_samples, 3)
-    save_solution(dic, x_samples, 4)
+    if load1:
+        save_solution(dic, x_samples, 2)
+        if load2:
+            save_solution(dic, x_samples, 4)
+            if load4:
+                save_solution(dic, x_samples, 3)
 
 
 x0, xf = 0., np.pi
-epochs, n_samples = int(1), 1200
+n_samples = 1200
 batch_size = n_samples
-train(x0, xf, epochs, n_samples, batch_size, load1=True, load2=True, load4=True)
+train(x0, xf, n_samples, batch_size, load1=True, load2=True, load4=True, load3=True)

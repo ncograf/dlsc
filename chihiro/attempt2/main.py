@@ -58,10 +58,11 @@ def save_plots(loss_history: list, pde_hist: list, norm_hist: list, orth_hist: l
 
 def save_solution(dic: dict, x_samples: Tensor,  index: int):
     print(f'############# Save Solution_{index} ################')
-    n1 = dic[index][0](x_samples)[0]
+    n1, lambda_n = dic[index][0](x_samples)
     pred_u = parametric_solutions(x_samples, n1, x0, xf, 0)
     print(f'* Normalization:\n ', 'Prediction: ', torch.sqrt(torch.sum(pred_u ** 2)).item(),
             '. True solution:', n_samples/xf)
+    print('Lambda: ', lambda_n[0].item())
 
     c_2 = n_samples / xf / \
         torch.sqrt(torch.dot(torch.sin(x_samples)[
@@ -153,14 +154,14 @@ def train(x0: Tensor, xf: Tensor, n_samples: int, batch_size: int,
             w_pde = [3]
         elif orth_counter[0] == 2:
             lr = float(0.05)
-            w_orth = [0.1]
+            w_orth = [0.05]
             w_orth = [5]
             w_pde = [10]
         elif orth_counter[0] == 3:
             lr = float(0.04)
             w_orth = [0.1]
             w_norm = [1]
-            w_pde = [1]
+            w_pde = [1.4]
         optimizer = torch.optim.LBFGS(network.parameters(),
                                       lr=lr,
                                       max_iter=5000,
@@ -206,7 +207,11 @@ def train(x0: Tensor, xf: Tensor, n_samples: int, batch_size: int,
                             loss_orth = torch.sqrt(torch.dot(par1[:, 0] + par2[:, 0],
                                                     pred_u[:, 0]).pow(2)) * w_orth[0]
                             if loss_orth < 2e-2:
-                                w_orth[0] = 0.001
+                                w_orth[0] = 0.0007
+                                w_pde[0] = 16
+                            if loss_orth < 2e-4:
+                                w_orth[0] = 0.0001
+                                w_norm[0] = 0.1
                             loss_tot += loss_orth
                         elif orth_counter[0] == 3:
                             par1 = parametric_solutions(
@@ -276,7 +281,7 @@ def train(x0: Tensor, xf: Tensor, n_samples: int, batch_size: int,
                         print(
                             f'Orth {orth_counter[0]} complete. Total Loss: {loss_tot.item()}')
                         raise OptimizationComplete
-                    if orth_counter[0] == 2 and decreasing and loss_tot.item() < 1.4:
+                    if orth_counter[0] == 2 and decreasing and loss_tot.item() < 0.4:
                         torch.save(network.state_dict(), model4_path)
                         save_plots(loss_history, loss_history_pde,
                                    loss_history_norm, loss_history_orth, history_lambda)
@@ -311,4 +316,4 @@ def train(x0: Tensor, xf: Tensor, n_samples: int, batch_size: int,
 x0, xf = 0., np.pi
 n_samples = 1200
 batch_size = n_samples
-train(x0, xf, n_samples, batch_size, load1=True, load2=True, load4=True, load3=True)
+train(x0, xf, n_samples, batch_size, load1=True, load2=True, load4=True, load3=False)

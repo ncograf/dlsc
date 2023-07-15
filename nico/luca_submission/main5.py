@@ -584,9 +584,9 @@ class Pinns:
             else:
                 axs[idx].set_ylim(top=14, bottom=-10)
                 
+            axs[idx].plot(t_, f, label=f'pred with MSE = {np.round(mean,4)}', linewidth=3 )
             if plot_exact:
-                axs[idx].plot(t_, exact_f, label=f'exact E = {np.round(E,4)}')
-            axs[idx].plot(t_, f, label=f'pred with MSE = {np.round(mean,4)}', )
+                axs[idx].plot(t_, exact_f, '-', label=f'exact E = {np.round(E,4)}', linewidth=2)
             axs[idx].legend(loc=1, prop={"size":16})
             
         fig.tight_layout(pad=5)

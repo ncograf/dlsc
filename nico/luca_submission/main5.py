@@ -546,16 +546,17 @@ class Pinns:
         print(f'######### plot all solutions #############')
         plt.close()
         plt.cla()
-        fig, axs = plt.subplots(1, 4, figsize=(25, 5))
+        fig, axs = plt.subplots(1, 4, figsize=(25, 7))
         t = torch.linspace(self.x0, self.xf, 3000).reshape(-1,1)
         self.load_states(True, True, True, True)
-        for i in range(4):
+        for idx, i in enumerate([0,2,1,3]):
             n1, lambda_ = self.dic[i][0](t)
             f = self.parametric_solutions(t, n1, self.x0, self.xf, 0)
             E = np.round(lambda_[0].item(),4)
-            axs[i].plot(t.flatten().detach(), f.flatten().detach(), label=f'pred E = {E}')
-            axs[i].legend(loc=1)
+            axs[idx].plot(t.flatten().detach(), f.flatten().detach(), label=f'pred E = {E}')
+            axs[idx].legend(loc=1, prop={"size":16})
             
+        fig.tight_layout(pad=5)
         fig.savefig(all_solutions_path)
 
 

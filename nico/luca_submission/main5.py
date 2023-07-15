@@ -542,23 +542,57 @@ class Pinns:
         plt.legend()
         plt.savefig(os.path.join(plot_dir, f'solution_{index}.png'))
         
-    def plot_all(self):
+    def plot_all(self, plot_exact = True):
         print(f'######### plot all solutions #############')
         plt.close()
         plt.cla()
         fig, axs = plt.subplots(1, 4, figsize=(25, 7))
-        t = torch.linspace(self.x0, self.xf, 3000).reshape(-1,1)
+        t = torch.linspace(self.x0, self.xf, 2001).reshape(-1,1)
         self.load_states(True, True, True, True)
+
+        def exact_sol(t, E, sym, z1, z2):
+            t = np.array(t)
+            l = 1.7
+            alpha = np.sqrt(2 * (20 - E))
+            k = np.sqrt(2 * E)
+            delta = np.array([np.pi/2, np.pi/2, 0, 0])[i]
+            c1 = np.abs(np.sin(k * l + delta) * np.exp(alpha * l))
+            n = self.x_samples.shape[0]
+            f1 = np.sin(z1 * t * k + delta)
+            f2 = z2 * c1 * np.exp(alpha * t)
+            f3 = z2 * sym * c1 * np.exp(-alpha * t)
+            f = np.where(t < -l, f2, f1)
+            f = np.where(t > l, f3, f)
+            # f sould be either purly imaginary or purely real
+            f = f / np.linalg.norm(f) * n / (self.xf - self.x0)
+            return f
+
         for idx, i in enumerate([0,2,1,3]):
             n1, lambda_ = self.dic[i][0](t)
             f = self.parametric_solutions(t, n1, self.x0, self.xf, 0)
-            E = np.round(lambda_[0].item(),4)
-            axs[idx].plot(t.flatten().detach(), f.flatten().detach(), label=f'pred E = {E}')
+            f = f.flatten().detach().numpy()
+            E = np.abs(lambda_[0].item())
+            sym = np.array([1,1,-1,-1])[i]
+            z1 = np.array([1,1,-1,1])[i]
+            z2 = np.array([1,-1,1,1])[i]
+            exact_f = exact_sol(t, E, sym, z1, z2).astype(np.float128).flatten()
+            diff =  (exact_f - f)**2
+            mean =  np.mean(diff)
+            t_ = t.numpy().flatten()
+            if idx == 0:
+                axs[idx].set_ylim(top=12, bottom=-1)
+            else:
+                axs[idx].set_ylim(top=14, bottom=-10)
+                
+            if plot_exact:
+                axs[idx].plot(t_, exact_f, label=f'exact E = {np.round(E,4)}')
+            axs[idx].plot(t_, f, label=f'pred with MSE = {np.round(mean,4)}', )
             axs[idx].legend(loc=1, prop={"size":16})
             
         fig.tight_layout(pad=5)
         fig.savefig(all_solutions_path)
-
+        
+        
 
 if __name__ == "__main__":
     x0, xf = -6., 6.
